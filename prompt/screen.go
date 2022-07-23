@@ -3,25 +3,23 @@ package prompt
 import (
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
-	"errors"
 	"fmt"
 	"github.com/chzyer/readline"
+	"os"
 )
 
-var up = "up"
-var down = "down"
-var left = "left"
-var right = "right"
-
-var Quit = "quit"
-
 type Screen struct {
-	Option  []string
-	index   int
-	Cfg     *Config
-	r       *readline.Instance
+	*Config
+	*readline.Instance
+	status
+	Option []string
+	index  int
+	others int
+}
+
+type status struct {
 	isFirst bool
-	others  int
+	isEnter bool
 }
 
 type Config struct {
@@ -36,32 +34,21 @@ func (s *Screen) Select() (int, string, error) {
 	}
 	defer func(r *readline.Instance) {
 		_ = r.Close()
-	}(s.r)
+	}(s.Instance)
 
-	s.writeString("sunflower")
-	enter := false
+	s.writeRow(keys.F7) // any key except up, down, left, right
 	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
-		switch key.Code {
-		case keys.Up:
-			s.writeString(up)
-		case keys.Down:
-			s.writeString(down)
-		case keys.Left:
-			s.writeString(left)
-		case keys.Right:
-			s.writeString(right)
-		case keys.Enter:
-			enter = true
-			return true, nil
-		case keys.Esc, keys.CtrlC:
-			return true, errors.New(Quit)
+		if key.Code == keys.Enter {
+			return s.enterEvent()
+		} else {
+			s.writeRow(key.Code)
 		}
 		return false, nil
 	})
 	if err != nil {
 		return 0, "", err
 	}
-	if enter {
+	if s.status.isEnter {
 		return s.index, s.Option[s.index], nil
 	}
 	return 0, "", nil
@@ -73,15 +60,14 @@ func (s *Screen) init() error {
 }
 
 func (s *Screen) defaultCfg() {
-	if s.Cfg == nil {
-		s.Cfg = &Config{}
+	if s.Config == nil {
+		s.Config = &Config{}
 	}
-	if s.Cfg.Emoji == "" {
-		s.Cfg.Emoji = ">"
+	if s.Config.Emoji == "" {
+		s.Config.Emoji = ">"
 	}
-	s.isFirst = true
-	s.others = 1
-	if s.Cfg.Title != "" {
+	s.status.isFirst = true
+	if s.Config.Title != "" {
 		s.others++
 	}
 }
@@ -91,50 +77,59 @@ func (s *Screen) newRl() error {
 	if err != nil {
 		return err
 	}
-	s.r = readLine
-	_, _ = s.r.Write([]byte("\033[?25l"))
+	s.Instance = readLine
+	_, _ = s.Instance.Write([]byte(HiddenCursor))
 	return nil
 }
 
-func (s *Screen) writeString(key string) {
-	if !s.isFirst {
+func (s *Screen) writeRow(k keys.KeyCode) {
+	if !s.status.isFirst && k != keys.F7 {
 		s.cleanUp()
 	}
-	switch key {
-	case up:
+	switch k {
+	case keys.Up:
 		if s.index > 0 {
 			s.index--
 		}
-	case down:
+	case keys.Down:
 		if s.index < len(s.Option)-1 {
 			s.index++
 		}
-	case left:
+	case keys.Left:
 		s.index = 0
-	case right:
+	case keys.Right:
 		s.index = len(s.Option) - 1
+	case keys.CtrlC:
+		Close()
+		os.Exit(0)
 	}
-	if s.Cfg.Title != "" {
-		fmt.Println(White(s.Cfg.Title + ":"))
+	if s.Config.Title != "" {
+		fmt.Println(White(s.Config.Title))
 	}
-	fmt.Println(White("← ↑ → ↓"))
 	for i, o := range s.Option {
 		if i == s.index {
-			fmt.Printf("%s %s\n", s.Cfg.Emoji, o)
+			fmt.Printf("%s %s\n", s.Config.Emoji, o)
 		} else {
 			fmt.Printf(o + "\n")
 		}
 	}
-	s.isFirst = false
+	s.status.isFirst = false
+}
+
+func (s *Screen) enterEvent() (bool, error) {
+	s.status.isEnter = true
+	s.cleanUp()
+	fmt.Printf("%s %s\n", CheckMark, s.Option[s.index])
+	return true, nil
 }
 
 func (s *Screen) cleanUp() {
 	for i := 0; i < len(s.Option)+s.others; i++ {
-		_, _ = s.r.Write([]byte("\033[1A"))
-		_, _ = s.r.Write([]byte("\033[2K\r"))
+		_, _ = s.Instance.Write([]byte(moveUp))
+		_, _ = s.Instance.Write([]byte(clean))
 	}
 }
 
 func Close() {
-	fmt.Printf("\033[?25h")
+	fmt.Printf(ShowCursor)
 }
