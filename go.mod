@@ -1,11 +1,9 @@
-module sunflower
+module github.com/7yyo/sunflower
 
 go 1.18
 
 require (
 	github.com/chzyer/readline v1.5.1
-	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
-	github.com/nsf/termbox-go v1.1.1
 )
 
 require (

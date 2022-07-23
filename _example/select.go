@@ -2,12 +2,12 @@ package _example
 
 import (
 	"fmt"
-	p "sunflower/prompt"
+	p "github.com/7yyo/sunflower/prompt"
 )
 
 func main() {
 
-	defer p.Reset()
+	defer p.Close()
 
 	o := []string{
 		"Monday",

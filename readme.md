@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	defer p.Reset()
+	defer p.Close()
 
 	o := []string{
 		"Monday",
@@ -31,11 +31,13 @@ func main() {
 		},
 	}
 	i, _, err := s.Select()
+	
 	if err != nil && err.Error() != p.Quit {
 		panic(err)
 	} else if err != nil && err.Error() == p.Quit {
 		return
 	}
+	
 	fmt.Printf("\nyou choose: %d, %s\n", i, o[i])
 }
 ```

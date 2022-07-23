@@ -135,6 +135,6 @@ func (s *Screen) cleanUp() {
 	}
 }
 
-func Reset() {
+func Close() {
 	fmt.Printf("\033[?25h")
 }
