@@ -10,19 +10,15 @@ import (
 	"strings"
 )
 
-type Screen struct {
-	*Config
+type Select struct {
+	Emoji string
+	Title string
 	*Description
 	*readline.Instance
 	ch
 	Option []interface{}
 	index  int
 	size   int
-}
-
-type Config struct {
-	Emoji string
-	Title string
 }
 
 type ch struct {
@@ -36,22 +32,7 @@ type Description struct {
 	D []string
 }
 
-func (s *Screen) init() error {
-	if s.Config == nil {
-		s.Config = &Config{}
-	}
-	if s.Config.Emoji == "" {
-		s.Config.Emoji = ">"
-	}
-	s.keyC = make(chan keys.Key)
-	s.keyEnterC = make(chan bool)
-	s.bufferC = make(chan string)
-	hiddenCursor()
-	go s.printer()
-	return s.newReadline()
-}
-
-func (s *Screen) Select() (int, interface{}, error) {
+func (s *Select) Run() (int, interface{}, error) {
 	if err := s.init(); err != nil {
 		return 0, "", err
 	}
@@ -87,7 +68,19 @@ func (s *Screen) Select() (int, interface{}, error) {
 	}
 }
 
-func (s *Screen) newReadline() error {
+func (s *Select) init() error {
+	if s.Emoji == "" {
+		s.Emoji = ">"
+	}
+	s.keyC = make(chan keys.Key)
+	s.keyEnterC = make(chan bool)
+	s.bufferC = make(chan string)
+	hiddenCursor()
+	go s.printer()
+	return s.newReadline()
+}
+
+func (s *Select) newReadline() error {
 	readLine, err := readline.NewEx(&readline.Config{})
 	if err != nil {
 		return err
@@ -97,7 +90,7 @@ func (s *Screen) newReadline() error {
 	return nil
 }
 
-func (s *Screen) keyEvent() {
+func (s *Select) keyEvent() {
 	select {
 	case k := <-s.keyC:
 		switch k.Code {
@@ -127,21 +120,21 @@ func (s *Screen) keyEvent() {
 	}
 }
 
-func (s *Screen) printer() {
+func (s *Select) printer() {
 	for {
 		fmt.Printf(<-s.ch.bufferC)
 	}
 }
 
-func (s *Screen) render() {
+func (s *Select) render() {
 	s.size = 0
-	s.bufferC <- fmt.Sprintf("%s\n", fmt.Sprintf(White(s.Config.Title+" "+ArrowKey)))
+	s.bufferC <- fmt.Sprintf("%s\n", fmt.Sprintf(White(s.Title+" "+ArrowKey)))
 	s.size++
 	for i, o := range s.Option {
 		s.size++
 		if s.Description == nil {
 			if i == s.index {
-				s.bufferC <- fmt.Sprintf("%s %s\n", s.Config.Emoji, o)
+				s.bufferC <- fmt.Sprintf("%s %s\n", s.Emoji, o)
 			} else {
 				s.bufferC <- fmt.Sprintf("%s\n", o)
 			}
@@ -149,7 +142,7 @@ func (s *Screen) render() {
 			v := reflect.ValueOf(o)
 			t := v.FieldByName(s.Description.T)
 			if i == s.index {
-				s.bufferC <- fmt.Sprintf("%s %s\n", s.Config.Emoji, t)
+				s.bufferC <- fmt.Sprintf("%s %s\n", s.Emoji, t)
 				for _, dv := range s.D {
 					d := v.FieldByName(dv)
 					s.size += len(strings.Split(d.String(), "\n"))
@@ -162,7 +155,7 @@ func (s *Screen) render() {
 	}
 }
 
-func (s *Screen) cleanUpScreen() {
+func (s *Select) cleanUpScreen() {
 	for i := 0; i < s.size; i++ {
 		moveUp()
 		clearRow()

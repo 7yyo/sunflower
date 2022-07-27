@@ -7,6 +7,7 @@ var ArrowKey = "← ↑ → ↓"
 var CheckMark = "\U00002714" // ✔
 var Sunflower = "\U0001F33B" // 🌻
 var VideoGame = "\U0001F3AE" // 🎮
+var Moai = "\U0001F5FF"      // 🗿
 
 var ShowCursor = "\033[?25h"
 var HiddenCursor = "\u001B[?25l"
