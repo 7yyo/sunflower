@@ -13,7 +13,7 @@ type Set struct {
 	Emoji string
 }
 
-func (se *Set) Run() string {
+func (se *Set) Run() (string, error) {
 	v := reflect.ValueOf(se.O).Elem()
 	c := v.FieldByName(se.C)
 	showCursor()
@@ -28,7 +28,6 @@ func (se *Set) Run() string {
 		fmt.Printf(fmt.Sprintf(White("   %s: %s\n"), dv, d.String()))
 	}
 	for {
-		r, _ := rl.Readline()
-		return r
+		return rl.Readline()
 	}
 }

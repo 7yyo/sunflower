@@ -46,8 +46,7 @@ func main() {
 		Emoji: p.VideoGame,
 		Title: "Select your platform: ",
 	}
-	i, r, _ := s.Run()
-	fmt.Printf("%d, %s\n", i, r)
+	_, _, _ = s.Run()
 
 	n := []interface{}{
 		"Jim",
@@ -57,8 +56,7 @@ func main() {
 	ss := p.Select{
 		Option: n,
 	}
-	i, r, _ = ss.Run()
-	fmt.Printf("%d, %s\n", i, r)
+	_, _, _ = ss.Run()
 
 	c := config{
 		Name:        "max-replicas",
@@ -76,9 +74,9 @@ func main() {
 		},
 		Emoji: p.VideoGame,
 	}
-	result := se.Run()
+	result, _ := se.Run()
 	fmt.Printf("%s\n", result)
 
-	e := p.Enter{}
-	fmt.Printf("return? %v", e.Run())
+	b := p.Enter{}
+	fmt.Printf("return? %v", b.Run())
 }

@@ -38,10 +38,8 @@ func (s *Select) Run() (int, interface{}, error) {
 	}
 	defer s.Instance.Close()
 	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
-		go s.keyEvent()
-		s.keyC <- key
-		select {
-		case <-s.keyEnterC:
+		switch key.Code {
+		case keys.Enter:
 			s.cleanUpScreen()
 			if s.Description == nil {
 				print(fmt.Sprintf("%s %s\n", CheckMark, s.Option[s.index]))
@@ -52,6 +50,7 @@ func (s *Select) Run() (int, interface{}, error) {
 			}
 			return true, nil
 		default:
+			s.keyC <- key
 			return false, nil
 		}
 	})
@@ -75,8 +74,9 @@ func (s *Select) init() error {
 	s.keyC = make(chan keys.Key)
 	s.keyEnterC = make(chan bool)
 	s.bufferC = make(chan string)
-	hiddenCursor()
 	go s.printer()
+	go s.keyEvent()
+	hiddenCursor()
 	return s.newReadline()
 }
 
@@ -91,8 +91,8 @@ func (s *Select) newReadline() error {
 }
 
 func (s *Select) keyEvent() {
-	select {
-	case k := <-s.keyC:
+	for {
+		k := <-s.keyC
 		switch k.Code {
 		case keys.Up:
 			if s.index > 0 {
@@ -106,9 +106,6 @@ func (s *Select) keyEvent() {
 			s.index = 0
 		case keys.Right:
 			s.index = len(s.Option) - 1
-		case keys.Enter:
-			s.keyEnterC <- true
-			return
 		case keys.CtrlC:
 			Close()
 			os.Exit(0)
