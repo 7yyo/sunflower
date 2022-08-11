@@ -3,28 +3,19 @@ package prompt
 import (
 	"atomicgo.dev/keyboard"
 	"atomicgo.dev/keyboard/keys"
+	"errors"
 	"fmt"
-	"github.com/chzyer/readline"
 	"os"
 	"reflect"
 	"strings"
 )
 
 type Select struct {
-	Emoji string
-	Title string
-	*Description
-	*readline.Instance
-	ch
+	Title  string
 	Option []interface{}
-	index  int
-	size   int
-}
-
-type ch struct {
-	keyC      chan keys.Key
-	keyEnterC chan bool
-	bufferC   chan string
+	*Description
+	ch
+	buffer
 }
 
 type Description struct {
@@ -32,25 +23,41 @@ type Description struct {
 	D []string
 }
 
+type ch struct {
+	keyC      chan keys.Key
+	keyEnterC chan bool
+	backC     chan bool
+}
+
+type buffer struct {
+	index int
+	size  int
+	buf   strings.Builder
+}
+
 func (s *Select) Run() (int, interface{}, error) {
-	if err := s.init(); err != nil {
-		return 0, "", err
-	}
-	defer s.Instance.Close()
+	s.init()
+	defer close(s.ch.keyC)
+	defer close(s.ch.keyEnterC)
 	err := keyboard.Listen(func(key keys.Key) (stop bool, err error) {
 		switch key.Code {
 		case keys.Enter:
 			s.cleanUpScreen()
 			if s.Description == nil {
-				print(fmt.Sprintf("%s %s\n", CheckMark, s.Option[s.index]))
+				s.printPoint(Yes)
 			} else {
 				v := reflect.ValueOf(s.Option[s.index])
 				t := v.FieldByName(s.Description.T)
-				print(fmt.Sprintf("%s %s\n", CheckMark, t))
+				fmt.Printf("%s %s\n", Yes, t)
 			}
 			return true, nil
+		case keys.Backspace:
+			s.cleanUpScreen()
+			showCursor()
+			fmt.Printf(No)
+			return true, errors.New(key.Code.String())
 		default:
-			s.keyC <- key
+			s.ch.keyC <- key
 			return false, nil
 		}
 	})
@@ -58,41 +65,26 @@ func (s *Select) Run() (int, interface{}, error) {
 		return 0, "", err
 	} else {
 		if s.Description == nil {
-			return 0, s.Option[s.index].(string), nil
+			return s.index, s.Option[s.index].(string), nil
 		} else {
 			v := reflect.ValueOf(s.Option[s.index])
 			t := v.FieldByName(s.Description.T)
-			return 0, t.String(), nil
+			return s.index, t.String(), nil
 		}
 	}
 }
 
-func (s *Select) init() error {
-	if s.Emoji == "" {
-		s.Emoji = ">"
-	}
-	s.keyC = make(chan keys.Key)
-	s.keyEnterC = make(chan bool)
-	s.bufferC = make(chan string)
-	go s.printer()
-	go s.keyEvent()
+func (s *Select) init() {
 	hiddenCursor()
-	return s.newReadline()
-}
-
-func (s *Select) newReadline() error {
-	readLine, err := readline.NewEx(&readline.Config{})
-	if err != nil {
-		return err
-	}
-	s.Instance = readLine
+	s.ch.keyC = make(chan keys.Key)
+	s.ch.keyEnterC = make(chan bool)
 	s.render()
-	return nil
+	go s.keyEvent()
 }
 
 func (s *Select) keyEvent() {
 	for {
-		k := <-s.keyC
+		k := <-s.ch.keyC
 		switch k.Code {
 		case keys.Up:
 			if s.index > 0 {
@@ -117,46 +109,57 @@ func (s *Select) keyEvent() {
 	}
 }
 
-func (s *Select) printer() {
-	for {
-		fmt.Printf(<-s.ch.bufferC)
-	}
+func (s *Select) printPoint(emoji string) {
+	fmt.Printf("%s %s\n", emoji, s.Option[s.index])
 }
 
 func (s *Select) render() {
 	s.size = 0
-	s.bufferC <- fmt.Sprintf("%s\n", fmt.Sprintf(White(s.Title+" "+ArrowKey)))
-	s.size++
-	for i, o := range s.Option {
+	s.buffer.buf.Reset()
+	if s.Title != "" {
+		s.buffer.buf.WriteString(DarkGray(fmt.Sprintf("%s %s\n", ArrowKeys, s.Title)))
 		s.size++
+	}
+	for i, o := range s.Option {
 		if s.Description == nil {
-			if i == s.index {
-				s.bufferC <- fmt.Sprintf("%s %s\n", s.Emoji, o)
-			} else {
-				s.bufferC <- fmt.Sprintf("%s\n", o)
+			switch o.(type) {
+			case string:
+				if i == s.index {
+					s.buffer.buf.WriteString(LightGreen(o.(string), 0, 1) + "\n")
+				} else {
+					s.buffer.buf.WriteString(fmt.Sprintf("%s\n", o))
+				}
+			default:
+				panic("options is not a string type, which means your option is an object, please add a description attribute")
 			}
 		} else {
 			v := reflect.ValueOf(o)
 			t := v.FieldByName(s.Description.T)
 			if i == s.index {
-				s.bufferC <- fmt.Sprintf("%s %s\n", s.Emoji, t)
+				s.buffer.buf.WriteString(Red(t.String(), 0, 1) + "\n")
 				for _, dv := range s.D {
 					d := v.FieldByName(dv)
 					s.size += len(strings.Split(d.String(), "\n"))
-					s.bufferC <- fmt.Sprintf(White("%s: %s\n"), dv, d.String())
+					s.buffer.buf.WriteString(DarkGray(fmt.Sprintf("	%s: %s\n", dv, d.String())))
 				}
 			} else {
-				s.bufferC <- fmt.Sprintf("%s\n", t)
+				s.buffer.buf.WriteString(fmt.Sprintf("%s\n", t.String()))
 			}
 		}
 	}
+	s.size += len(s.Option)
+	fmt.Printf(s.buffer.buf.String())
 }
 
 func (s *Select) cleanUpScreen() {
 	for i := 0; i < s.size; i++ {
 		moveUp()
-		clearRow()
+		cleanUpRow()
 	}
+}
+
+func IsBackSpace(err error) bool {
+	return err.Error() == keys.Backspace.String()
 }
 
 func Close() {

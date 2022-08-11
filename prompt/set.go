@@ -3,6 +3,7 @@ package prompt
 import (
 	"fmt"
 	"github.com/chzyer/readline"
+	"github.com/fatih/color"
 	"reflect"
 )
 
@@ -20,12 +21,12 @@ func (se *Set) Run() (string, error) {
 	cfg := &readline.Config{}
 	rl, _ := readline.NewEx(cfg)
 	cfg.SetListener(func(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
-		rl.SetPrompt(fmt.Sprintf("%s %s: ", se.Emoji, c))
+		rl.SetPrompt(fmt.Sprintf("\r%s %s: ", se.Emoji, c))
 		return line, pos, false
 	})
 	for _, dv := range se.D {
 		d := v.FieldByName(dv)
-		fmt.Printf(fmt.Sprintf(White("   %s: %s\n"), dv, d.String()))
+		fmt.Printf(fmt.Sprintf(color.WhiteString("   %s: %s\n"), dv, d.String()))
 	}
 	for {
 		return rl.Readline()

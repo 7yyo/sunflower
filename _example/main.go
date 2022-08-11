@@ -2,81 +2,113 @@ package main
 
 import (
 	"fmt"
-	p "github.com/7yyo/sunflower/prompt"
+	"github.com/7yyo/sunflower/prompt"
 )
 
-type PlayForm struct {
-	Name  string
-	Price string
-	Size  string
-}
-
-type config struct {
-	Name        string
-	Default     string
-	Current     string
-	Description string
-}
-
 func main() {
+	plan()
+}
 
-	defer p.Close()
-	xbox := PlayForm{
-		Name:  "Xbox",
-		Price: "$299",
-		Size:  "1TB",
+func plan() {
+	defer prompt.Close()
+	weeks := []interface{}{
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday",
+		"Sunday",
 	}
-	ps5 := PlayForm{
-		Name:  "PS5",
-		Price: "$399",
-		Size:  "2TB",
+	s := prompt.Select{Title: "week plan", Option: weeks}
+	_, _, err := s.Run()
+	if err != nil {
+		if prompt.IsBackSpace(err) {
+			return
+		} else {
+			panic(err)
+		}
 	}
-	nintendoSwitch := PlayForm{
-		Name:  "SWITCH",
-		Price: "$299",
-		Size:  "3TB",
+	err = showTodo()
+	if err != nil {
+		if prompt.IsBackSpace(err) {
+			plan()
+		} else {
+			panic(err)
+		}
 	}
-	os := []interface{}{xbox, ps5, nintendoSwitch}
-	s := p.Select{
-		Option: os,
-		Description: &p.Description{
-			T: "Name",
-			D: []string{"Price", "Size"},
-		},
-		Emoji: p.VideoGame,
-		Title: "Select your platform: ",
-	}
-	_, _, _ = s.Run()
+}
 
-	n := []interface{}{
-		"Jim",
-		"Green",
-		"Tom",
+func showTodo() error {
+	todo := []interface{}{
+		"play",
+		"read",
 	}
-	ss := p.Select{
-		Option: n,
+	s := prompt.Select{Title: "what do u want to do?", Option: todo}
+	_, r, err := s.Run()
+	if err != nil {
+		return err
 	}
-	_, _, _ = ss.Run()
+	err = todoInfo(r.(string))
+	if err != nil {
+		if prompt.IsBackSpace(err) {
+			plan()
+		} else {
+			panic(err)
+		}
+	}
+	return nil
+}
 
-	c := config{
-		Name:        "max-replicas",
-		Default:     "3",
-		Current:     "10",
-		Description: "Sets the maximum number of replicas.",
-	}
-	se := p.Set{
-		O: &c,
-		C: "Name",
-		D: []string{
-			"Default",
-			"Current",
-			"Description",
-		},
-		Emoji: p.VideoGame,
-	}
-	result, _ := se.Run()
-	fmt.Printf("%s\n", result)
+type game struct {
+	Name    string
+	Details string
+}
 
-	b := p.Enter{}
-	fmt.Printf("return? %v", b.Run())
+func todoInfo(todo string) error {
+	switch todo {
+	case "play":
+		g1 := game{Name: "BloodBorne", Details: "ブラッドボーン BloodBorne"}
+		g2 := game{Name: "OveredCooked!", Details: "Let's coooooooooooooking"}
+		games := []interface{}{
+			g1,
+			g2,
+		}
+		s := prompt.Select{
+			Title:  "what game do u want to play?",
+			Option: games,
+			Description: &prompt.Description{
+				T: "Name",
+				D: []string{"Details"},
+			},
+		}
+		_, r, err := s.Run()
+		if err != nil {
+			if prompt.IsBackSpace(err) {
+				return showTodo()
+			} else {
+				panic(err)
+			}
+		}
+		b, _ := prompt.Conform()
+		if b {
+			switch r {
+			case "BloodBorne":
+				print("Welcome to YaNan...")
+			case "OveredCooked!":
+				print("Cooking...")
+			}
+			if prompt.Back() {
+				return todoInfo("play")
+			}
+		} else {
+			return todoInfo("play")
+		}
+	case "read":
+		fmt.Printf("... Reading")
+	}
+	if prompt.Back() {
+		return showTodo()
+	}
+	return nil
 }
