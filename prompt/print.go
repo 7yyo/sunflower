@@ -8,7 +8,9 @@ import (
 )
 
 var ArrowKeys = "← ↑ → ↓"
+var Up = "↑"
 var Down = "↓"
+var Left = "←"
 var Right = "→"
 
 var Yes = color.GreenString("\U00002714")           // ✔

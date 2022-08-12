@@ -20,7 +20,11 @@ func plan() {
 		"Saturday",
 		"Sunday",
 	}
-	s := prompt.Select{Title: "week plan", Option: weeks}
+	s := prompt.Select{
+		Title:  "week plan",
+		Option: weeks,
+		Cap:    5,
+	}
 	_, _, err := s.Run()
 	if err != nil {
 		if prompt.IsBackSpace(err) {
@@ -44,7 +48,10 @@ func showTodo() error {
 		"play",
 		"read",
 	}
-	s := prompt.Select{Title: "what do u want to do?", Option: todo}
+	s := prompt.Select{
+		Title:  "what do u want to do?",
+		Option: todo,
+	}
 	_, r, err := s.Run()
 	if err != nil {
 		return err
@@ -68,7 +75,7 @@ type game struct {
 func todoInfo(todo string) error {
 	switch todo {
 	case "play":
-		g1 := game{Name: "BloodBorne", Details: "ブラッドボーン BloodBorne"}
+		g1 := game{Name: "BloodBorne", Details: "ブラッドボーン BloodBorne\nhttps://www.playstation.com/ja-jp/games/bloodborne/"}
 		g2 := game{Name: "OveredCooked!", Details: "Let's coooooooooooooking"}
 		games := []interface{}{
 			g1,
@@ -94,9 +101,9 @@ func todoInfo(todo string) error {
 		if b {
 			switch r {
 			case "BloodBorne":
-				print("Welcome to YaNan...")
+				print("欢迎来到亞楠...\nhttps://twitter.com/Bloodborne_PS4")
 			case "OveredCooked!":
-				print("Cooking...")
+				print("Cooking.")
 			}
 			if prompt.Back() {
 				return todoInfo("play")

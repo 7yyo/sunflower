@@ -23,16 +23,14 @@ func Conform() (bool, error) {
 	})
 	for {
 		l, _ := rl.Readline()
+		moveUp()
+		cleanUpRow()
 		switch l {
 		case "y":
-			moveUp()
-			cleanUpRow()
 			fmt.Printf("%s\n", Yes)
 			return true, nil
 		case "N":
-			moveUp()
-			cleanUpRow()
-			fmt.Printf("%s   %s", X, No)
+			fmt.Printf("%s", No)
 			return false, nil
 		default:
 			continue

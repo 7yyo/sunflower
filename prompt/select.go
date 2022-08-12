@@ -13,7 +13,9 @@ import (
 type Select struct {
 	Title  string
 	Option []interface{}
+	Cap    int
 	*Description
+	gun []interface{}
 	ch
 	buffer
 }
@@ -30,9 +32,12 @@ type ch struct {
 }
 
 type buffer struct {
-	index int
-	size  int
-	buf   strings.Builder
+	index         int
+	cursor        int
+	size          int
+	upperBoundary bool
+	lowerBoundary bool
+	buf           strings.Builder
 }
 
 func (s *Select) Run() (int, interface{}, error) {
@@ -87,17 +92,56 @@ func (s *Select) keyEvent() {
 		k := <-s.ch.keyC
 		switch k.Code {
 		case keys.Up:
-			if s.index > 0 {
-				s.index--
+			if s.buffer.index > 0 {
+				s.buffer.index--
+				if s.Cap == 0 {
+					s.buffer.cursor--
+				}
+			}
+			if s.Cap != 0 {
+				if s.index > 0 {
+					if s.index < s.Cap-1 {
+						s.buffer.cursor--
+					} else {
+						s.buffer.cursor = s.Cap - 1
+					}
+				} else if s.index == 0 {
+					s.lowerBoundary = false
+					s.buffer.cursor = 0
+				}
 			}
 		case keys.Down:
 			if s.index < len(s.Option)-1 {
 				s.index++
+				if s.Cap == 0 {
+					s.buffer.cursor++
+				}
+			}
+			if s.Cap != 0 {
+				if s.buffer.lowerBoundary {
+					s.buffer.cursor = s.Cap - 1
+				} else {
+					s.buffer.cursor++
+				}
+				if s.index%s.Cap == 0 {
+					s.buffer.cursor = s.Cap - 1
+					s.buffer.lowerBoundary = true
+				}
 			}
 		case keys.Left:
 			s.index = 0
+			if s.Cap != 0 {
+				s.cursor = 0
+				s.upperBoundary = true
+				s.lowerBoundary = false
+			}
 		case keys.Right:
 			s.index = len(s.Option) - 1
+			if s.Cap != 0 {
+				s.cursor = s.Cap - 1
+				s.upperBoundary = false
+				s.lowerBoundary = true
+			}
 		case keys.CtrlC:
 			Close()
 			os.Exit(0)
@@ -117,14 +161,15 @@ func (s *Select) render() {
 	s.size = 0
 	s.buffer.buf.Reset()
 	if s.Title != "" {
-		s.buffer.buf.WriteString(DarkGray(fmt.Sprintf("%s %s\n", ArrowKeys, s.Title)))
+		s.buffer.buf.WriteString(LightGray(fmt.Sprintf("%s %s\n", ArrowKeys, s.Title)))
 		s.size++
 	}
-	for i, o := range s.Option {
+	s.resetGun()
+	for i, o := range s.gun {
 		if s.Description == nil {
 			switch o.(type) {
 			case string:
-				if i == s.index {
+				if i == s.cursor {
 					s.buffer.buf.WriteString(LightGreen(o.(string), 0, 1) + "\n")
 				} else {
 					s.buffer.buf.WriteString(fmt.Sprintf("%s\n", o))
@@ -135,20 +180,35 @@ func (s *Select) render() {
 		} else {
 			v := reflect.ValueOf(o)
 			t := v.FieldByName(s.Description.T)
-			if i == s.index {
-				s.buffer.buf.WriteString(Red(t.String(), 0, 1) + "\n")
+			if i == s.cursor {
+				s.buffer.buf.WriteString(LightGreen(t.String(), 0, 1) + "\n")
 				for _, dv := range s.D {
 					d := v.FieldByName(dv)
 					s.size += len(strings.Split(d.String(), "\n"))
-					s.buffer.buf.WriteString(DarkGray(fmt.Sprintf("	%s: %s\n", dv, d.String())))
+					s.buffer.buf.WriteString(LightGray(fmt.Sprintf("	%s: %s\n", dv, d.String())))
 				}
 			} else {
 				s.buffer.buf.WriteString(fmt.Sprintf("%s\n", t.String()))
 			}
 		}
 	}
-	s.size += len(s.Option)
 	fmt.Printf(s.buffer.buf.String())
+	if s.Cap != 0 {
+		print(LightGray(fmt.Sprintf("			%d/%d\n", s.index+1, len(s.Option))))
+		s.size++
+	}
+	s.size += len(s.gun)
+}
+
+func (s *Select) resetGun() {
+	s.gun = s.Option
+	if len(s.Option) > s.Cap && s.Cap != 0 {
+		if s.index <= s.Cap-1 {
+			s.gun = s.gun[:s.Cap]
+		} else if s.index > s.Cap-1 {
+			s.gun = s.gun[s.index-s.Cap+1 : s.index+1]
+		}
+	}
 }
 
 func (s *Select) cleanUpScreen() {
