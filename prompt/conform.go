@@ -18,7 +18,7 @@ func Conform() (bool, error) {
 	}
 	defer rl.Close()
 	cfg.SetListener(func(line []rune, pos int, key rune) (newLine []rune, newPos int, ok bool) {
-		rl.SetPrompt(DarkGray("are you sure? [y/N] "))
+		rl.SetPrompt(LightGray("are you sure? [y/N] "))
 		return line, 0, false
 	})
 	for {
@@ -27,12 +27,13 @@ func Conform() (bool, error) {
 		cleanUpRow()
 		switch l {
 		case "y":
-			fmt.Printf("%s\n", Yes)
+			fmt.Printf("%s\n", Y)
 			return true, nil
 		case "N":
-			fmt.Printf("%s", No)
+			fmt.Printf("%s", N)
 			return false, nil
 		default:
+			fmt.Printf(LightRed("please type 'y' or 'N'\n"))
 			continue
 		}
 	}

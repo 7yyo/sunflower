@@ -75,7 +75,7 @@ type game struct {
 func todoInfo(todo string) error {
 	switch todo {
 	case "play":
-		g1 := game{Name: "BloodBorne", Details: "ブラッドボーン BloodBorne\nhttps://www.playstation.com/ja-jp/games/bloodborne/"}
+		g1 := game{Name: "BloodBorne", Details: "ブラッドボーン BloodBorne https://www.playstation.com/ja-jp/games/bloodborne/"}
 		g2 := game{Name: "OveredCooked!", Details: "Let's coooooooooooooking"}
 		games := []interface{}{
 			g1,
@@ -84,7 +84,7 @@ func todoInfo(todo string) error {
 		s := prompt.Select{
 			Title:  "what game do u want to play?",
 			Option: games,
-			Description: &prompt.Description{
+			Desc: &prompt.Desc{
 				T: "Name",
 				D: []string{"Details"},
 			},

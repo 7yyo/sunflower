@@ -13,9 +13,9 @@ var Down = "↓"
 var Left = "←"
 var Right = "→"
 
-var Yes = color.GreenString("\U00002714")           // ✔
-var X = color.GreenString("\U00002716")             // ✗
-var No = " " + color.RedString("\U000021A9") + "\n" // ⏎
+var Y = color.GreenString("\U00002714")            // ✔
+var X = color.GreenString("\U00002716")            // ✗
+var N = " " + color.RedString("\U000021A9") + "\n" // ⏎
 
 var Sunflower = "\U0001F33B"            // 🌻
 var VideoGame = "\U0001F3AE"            // 🎮

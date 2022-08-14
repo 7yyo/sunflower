@@ -20,6 +20,6 @@ func Back() bool {
 		}
 		return fg, nil
 	})
-	fmt.Printf(No)
+	fmt.Printf(N)
 	return fg
 }
