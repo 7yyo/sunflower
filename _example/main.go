@@ -23,7 +23,7 @@ func plan() {
 	s := prompt.Select{
 		Title:  "week plan",
 		Option: weeks,
-		Cap:    5,
+		Cap:    10,
 	}
 	_, _, err := s.Run()
 	if err != nil {
@@ -76,7 +76,7 @@ func todoInfo(todo string) error {
 	switch todo {
 	case "play":
 		g1 := game{Name: "BloodBorne", Details: "ブラッドボーン BloodBorne https://www.playstation.com/ja-jp/games/bloodborne/"}
-		g2 := game{Name: "OveredCooked!", Details: "Let's coooooooooooooking"}
+		g2 := game{Name: "OveredCooked!", Details: "Let"}
 		games := []interface{}{
 			g1,
 			g2,
@@ -112,7 +112,7 @@ func todoInfo(todo string) error {
 			return todoInfo("play")
 		}
 	case "read":
-		fmt.Printf("... Reading")
+		fmt.Printf("Reading")
 	}
 	if prompt.Back() {
 		return showTodo()

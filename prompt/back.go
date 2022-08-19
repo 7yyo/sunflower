@@ -13,13 +13,13 @@ func Back() bool {
 		switch key.Code {
 		case keys.Backspace:
 			fg = true
-			return fg, nil
+			fmt.Printf("%s\n", turnBack)
+			return true, nil
 		case keys.CtrlC:
 			Close()
 			os.Exit(0)
 		}
-		return fg, nil
+		return
 	})
-	fmt.Printf(N)
 	return fg
 }
